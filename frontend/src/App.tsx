@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { UploadZone } from "./components/UploadZone";
 import { ResultPanel } from "./components/ResultPanel";
@@ -30,26 +31,39 @@ export default function Home() {
   };
 
   const handleDebug = async () => {
-    if (!sourceCode && uploadedFiles.length === 0) return;
-    
+    if (!sourceCode.trim() && uploadedFiles.length === 0) {
+      return;
+    }
+
     setLoading(true);
     setResult(null);
     setActiveTab("results");
-    
+
     try {
-      const res = await analyzeImages(uploadedFiles);
+      const res = await analyzeImages(
+        uploadedFiles,
+        sourceCode,
+        language
+      );
+
       setResult(res);
     } catch (error) {
+      console.error("DebugAI analysis error:", error);
+
       setResult({
         error: true,
-        message: "Analysis failed. Please try again."
+        message:
+          error instanceof Error
+            ? error.message
+            : "Analysis failed. Please try again.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const hasInput = sourceCode.trim().length > 0 || uploadedFiles.length > 0;
+  const hasInput =
+    sourceCode.trim().length > 0 || uploadedFiles.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -65,9 +79,12 @@ export default function Home() {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   DebugAI
                 </h1>
-                <p className="text-xs text-gray-500">AI-Powered Debug Assistant</p>
+                <p className="text-xs text-gray-500">
+                  AI-Powered Debug Assistant
+                </p>
               </div>
             </div>
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -75,6 +92,7 @@ export default function Home() {
                   About
                 </Button>
               </DialogTrigger>
+
               <DialogContent>
                 <DialogTitle>About DebugAI</DialogTitle>
                 <DialogDescription>
@@ -84,44 +102,41 @@ export default function Home() {
                 <div className="mt-4 text-sm text-gray-700 space-y-3">
                   <h4 className="font-medium">Overview</h4>
                   <p>
-                    Multimodal Code Debug is an AI-powered assistant that helps
-                    developers diagnose and fix errors by combining visual
-                    context (screenshots) with source code. It extracts text
-                    from screenshots using OCR, constructs a focused debugging
-                    prompt, and runs a multimodal language model to generate
-                    clear explanations and suggested fixes.
+                    DebugAI is a debugging assistant prototype that extracts
+                    text from error screenshots using OCR and provides
+                    preliminary debugging suggestions through a rule-based
+                    analysis engine.
                   </p>
 
                   <h4 className="font-medium">How it works</h4>
                   <p>
-                    1) Upload an error screenshot or paste code. 2) The backend
-                    runs OCR to extract text, builds a debugging prompt, and
-                    forwards it to the analysis model. 3) Results are returned
-                    and displayed with explanations, suggested code fixes, and
-                    prevention tips.
+                    1) Upload an error screenshot. 2) The backend extracts
+                    visible text using OCR. 3) The analysis engine checks for
+                    recognized error patterns and returns a possible root
+                    cause, suggested correction, and prevention tips.
                   </p>
 
                   <h4 className="font-medium">Features</h4>
                   <ul className="list-disc list-inside">
-                    <li>OCR extraction from screenshots</li>
-                    <li>Automatic error identification and explanation</li>
-                    <li>Suggested fixes and code snippets</li>
-                    <li>Confidence score and prevention recommendations</li>
+                    <li>OCR text extraction from screenshots</li>
+                    <li>Preliminary error identification</li>
+                    <li>Suggested corrections and debugging steps</li>
+                    <li>Prevention recommendations</li>
                   </ul>
 
                   <h4 className="font-medium">Limitations & Safety</h4>
                   <p>
-                    The assistant provides suggestions but cannot run or verify
-                    code. Always review and test fixes before applying them in
-                    production. The model may sometimes misinterpret images or
-                    produce incorrect code — use with caution.
+                    The current analysis engine uses rules rather than an
+                    active language model. It does not execute or verify
+                    code, and its suggestions may be incomplete or incorrect.
+                    Review and test any suggested fix before using it.
                   </p>
 
                   <h4 className="font-medium">Contact & Contributing</h4>
                   <p>
-                    This is a lightweight developer tool. Contributions and
-                    improvements are welcome — open issues or pull requests in
-                    the project repository.
+                    Contributions and improvements are welcome. You can
+                    report issues or suggest improvements through the
+                    project repository.
                   </p>
                 </div>
 
@@ -138,13 +153,22 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="input" className="gap-2">
               <Code2 className="w-4 h-4" />
               Input
             </TabsTrigger>
-            <TabsTrigger value="results" className="gap-2" disabled={!result && !loading}>
+
+            <TabsTrigger
+              value="results"
+              className="gap-2"
+              disabled={!result && !loading}
+            >
               <Sparkles className="w-4 h-4" />
               Results
             </TabsTrigger>
@@ -159,9 +183,12 @@ export default function Home() {
                     <Code2 className="w-5 h-5 text-blue-600" />
                     <h2 className="text-lg font-semibold">Source Code</h2>
                   </div>
-                  
-                  <LanguageSelector value={language} onChange={setLanguage} />
-                  
+
+                  <LanguageSelector
+                    value={language}
+                    onChange={setLanguage}
+                  />
+
                   <div className="mt-4">
                     <CodeEditor
                       value={sourceCode}
@@ -177,20 +204,21 @@ export default function Home() {
                 <Card className="p-6 shadow-lg border-2">
                   <div className="flex items-center gap-2 mb-4">
                     <ImagePlus className="w-5 h-5 text-indigo-600" />
-                    <h2 className="text-lg font-semibold">Error Screenshots</h2>
+                    <h2 className="text-lg font-semibold">
+                      Error Screenshots
+                    </h2>
                   </div>
-                  
-                  <UploadZone 
+
+                  <UploadZone
                     onFiles={handleFiles}
                     files={uploadedFiles}
                   />
-                  
+
                   <p className="text-xs text-gray-500 mt-3">
-                    Upload screenshots of error messages, terminal output, or debugging consoles
+                    Upload screenshots of error messages, terminal output,
+                    or debugging consoles.
                   </p>
                 </Card>
-
-                {/* Info cards removed per request */}
               </div>
             </div>
 
@@ -225,3 +253,4 @@ export default function Home() {
     </div>
   );
 }
+

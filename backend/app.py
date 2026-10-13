@@ -1,7 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-import shutil
+
+
+from typing import Optional
 import os
+import shutil
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from services.ocr_service import extract_text
 from services.prompt_builder import build_debug_prompt
@@ -10,17 +14,20 @@ from utils.memory_guard import has_enough_memory
 from services.db_service import save_upload_record
 
 app = FastAPI()
+
+# Allow the DebugAI frontend on ports 3000 and 5173.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -28,32 +35,71 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/analyze")
 async def analyze(
-    file: UploadFile = File(...),
-    code: str | None = Form(None),
-    language: str | None = Form(None),
+    file: Optional[UploadFile] = File(None),
+    code: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
 ):
     if not has_enough_memory():
-        return {"error": "Low system memory. Close other apps and retry."}
+        raise HTTPException(
+            status_code=503,
+            detail="Low system memory. Close other apps and retry.",
+        )
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    # Require at least source code or an uploaded image.
+    if not (code and code.strip()) and file is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide source code, an image, or both.",
+        )
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    ocr_text = ""
+    file_path = None
+    filename = None
 
-    # OCR fallback
-    ocr_text = extract_text(file_path)
+    # Extract text if an image was uploaded.
+    if file is not None:
+        filename = os.path.basename(file.filename or "upload.png")
+        file_path = os.path.join(UPLOAD_DIR, filename)
 
-    # Build debugging prompt
-    prompt = build_debug_prompt(ocr_text)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    # Run LLaVA via Ollama
-    result = run_llava(file_path, prompt)
+        ocr_text = extract_text(file_path)
 
-    # Save record to MongoDB (non-blocking failure)
-    try:
-        record_id = save_upload_record(file.filename, file_path, ocr_text, result)
-    except Exception:
-        record_id = None
+    # Combine source code and OCR text into the analysis input.
+    analysis_parts = []
+
+    if language:
+        analysis_parts.append(f"Programming language: {language}")
+
+    if code and code.strip():
+        analysis_parts.append(f"Source code:\n{code}")
+
+    if ocr_text.strip():
+        analysis_parts.append(f"Text extracted from screenshot:\n{ocr_text}")
+
+    analysis_input = "\n\n".join(analysis_parts)
+    prompt = build_debug_prompt(analysis_input)
+
+    # The current engine provides rule-based preliminary analysis.
+    if file_path:
+        result = run_llava(file_path, prompt)
+    else:
+        result = run_llava("", prompt)
+
+    # Save an upload record only when an image was provided.
+    record_id = None
+
+    if file_path is not None:
+        try:
+            record_id = save_upload_record(
+                filename,
+                file_path,
+                ocr_text,
+                result,
+            )
+        except Exception as exc:
+            print(f"MongoDB save failed: {exc}")
 
     return {
         "analysis": result,
