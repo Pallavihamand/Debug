@@ -1,0 +1,13 @@
+@'
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+node_modules/
+.vite/
+dist/
+.env
+.env.*
+backend/uploads/*
+!backend/uploads/.gitkeep
+'@ | Set-Content -Encoding utf8 .gitignore
