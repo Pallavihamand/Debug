@@ -1,177 +1,245 @@
-# Multimodal Code Debug
+# DebugAI — Intelligent Bug Detection and Root-Cause Analysis
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green) ![React](https://img.shields.io/badge/React-Frontend-blue)
+**Python · FastAPI · React · TypeScript · OCR**
 
-> A focused demo and reference architecture for multimodal AI-powered debugging.
+DebugAI is a debugging assistant designed to help developers understand programming errors. It analyzes error screenshots, extracts visible error messages using Optical Character Recognition (OCR), and provides debugging guidance through a Python-based backend.
+
+The project provides a foundation for building a more advanced debugging system with root-cause analysis, source-code inspection, and automated fix recommendations.
 
 ## Overview
 
-This project demonstrates a practical multimodal debugging pipeline that analyzes screenshots and source code to identify errors, explain root causes, and suggest fixes.
+DebugAI aims to simplify debugging by helping developers identify common programming errors and understand their possible causes.
 
-This project is intended as:
-- A learning-focused demo of multimodal AI pipelines
-- A reference architecture for AI-powered debugging tools
-- A base for extending into full image-aware LLM debugging
+### Key Features
 
-## Key Capabilities
+- Upload screenshots containing programming errors.
+- Extract error messages from screenshots using Tesseract OCR.
+- Process extracted error text through a backend analysis pipeline.
+- Detect selected common error types using predefined rules.
+- Display analysis results through a React-based user interface.
+- Provide a modular backend that can be extended with additional debugging capabilities.
 
-- Upload error screenshots and source code
-- OCR-based error text extraction
-- LLM-powered root cause analysis and suggested fixes
-- Optional persistence using MongoDB
+**Current implementation:** The fallback analyzer uses predefined rules to identify selected error patterns. It does not currently provide active LLM-based analysis. Results should be treated as debugging guidance rather than guaranteed fixes.
 
 ## Architecture Overview
 
-Frontend (React)
-  ↓ multipart/form-data
+```text
+React Frontend
+      |
+      | HTTP multipart/form-data
+      v
 FastAPI Backend
-  ↓
-OCR (Tesseract)
-  ↓
+      |
+      v
+Image Upload and Processing
+      |
+      v
+Tesseract OCR
+      |
+      v
 Prompt Builder
-  ↓
-LLM (Ollama / LLaVA)
-  ↓
-Analysis JSON → UI
+      |
+      v
+Rule-Based Error Analysis
+      |
+      v
+Analysis Response
+      |
+      v
+React Results Interface
+```
 
-## Tech Stack
+## Technology Stack
 
-**Frontend**
-- React
-- Vite
-- TypeScript
+| Component | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite |
+| Backend | Python, FastAPI, Uvicorn |
+| Text Extraction | Tesseract OCR, pytesseract |
+| Analysis | Python-based rules and debugging heuristics |
+| Development Tools | Git, npm, Python virtual environment |
 
-**Backend**
-- FastAPI
-- Python
-- Uvicorn
+## Project Structure
 
-**AI / ML**
-- OCR: Tesseract
-- LLM: LLaVA via Ollama
-- Prompt engineering
-
-**Storage**
-- MongoDB
+```text
+DebugAI/
+├── backend/
+│   ├── app.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── models/
+│   │   └── llava_engine.py
+│   ├── services/
+│   │   ├── db_service.py
+│   │   ├── image_service.py
+│   │   ├── ocr_service.py
+│   │   ├── prompt_builder.py
+│   │   └── db_service.py
+│   └── utils/
+│       └── memory_guard.py
+├── docs/
+│   └── screenshots/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── services/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+├── .gitignore
+└── README.md
+```
 
 ## Prerequisites
 
-- Python 3.10+ (dev used Python 3.13 on Windows)
-- Node.js 16+ and npm
-- Tesseract OCR installed and available on PATH (or configure `pytesseract.pytesseract.tesseract_cmd`)
-- Ollama installed locally and configured with the `llava:7b` model if you want local multimodal inference (or change `backend/models/llava_engine.py` to call another API).
+Install the following software before running DebugAI:
+
+- Python 3.10 or a compatible version supported by the dependencies.
+- Node.js and npm.
+- Tesseract OCR.
+- Git.
+
+Python dependencies are listed in `backend/requirements.txt`.
+
+### Installing Tesseract OCR
+
+Install Tesseract OCR on your operating system.
+
+On Windows, ensure that the Tesseract executable is available through your system PATH. If it is installed in a non-standard location, configure the executable path in the OCR service.
 
 ## Backend Setup
 
-1. Create and activate a virtual environment inside `backend/`:
-
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate   # Windows
-source venv/bin/activate  # macOS / Linux
-```
-
-2. Install Python dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Configure `backend/models/llava_engine.py` if your Ollama binary is installed in a different location. The default path is set in `OLLAMA_PATH`.
-
-4. Run the backend (development reload mode):
-
-```bash
-uvicorn app:app --reload
-```
-
-Notes: the `--reload` option will show a transient KeyboardInterrupt stack when files change as the reloader restarts the worker — this is expected.
-
-## MongoDB
-
-The backend can save upload metadata (filename, path, OCR text, analysis, timestamp) to a MongoDB database. The project defaults to `mongodb://localhost:27017/` and database name `debugai`.
-
-1. Set environment variables (PowerShell):
+Open PowerShell and navigate to the backend directory:
 
 ```powershell
-$env:MONGODB_URI = 'mongodb://localhost:27017/'
-$env:MONGODB_DB = 'debugai'
+cd C:\Users\PUNAM\DebugAI\backend
 ```
 
-Or on macOS / Linux:
+Create a virtual environment if one does not already exist:
 
-```bash
-export MONGODB_URI='mongodb://localhost:27017/'
-export MONGODB_DB='debugai'
+```powershell
+python -m venv venv
 ```
 
-2. The backend reads `MONGODB_URI` and `MONGODB_DB` from the environment. You can add them to `backend/.env` if you use a dotenv loader or set them in your shell before starting `uvicorn`.
+Activate the virtual environment:
 
-3. Install Python dependencies (ensure you run this from the `backend/` folder or reference the correct path):
-
-```bash
-# from backend/
-pip install -r requirements.txt
-
-# or from repo root
-pip install -r backend/requirements.txt
+```powershell
+.\venv\Scripts\Activate.ps1
 ```
 
-4. The `/analyze` endpoint returns a `record_id` in the JSON when the upload is successfully stored in MongoDB. The DB stores metadata and a timestamp; binary image files are still saved to the `uploads/` folder by default.
+Install the required dependencies:
 
-Optional: store image binaries in GridFS if you prefer storing blobs inside MongoDB instead of the filesystem. If you'd like, I can add GridFS support to save images directly in the database.
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Start the FastAPI development server:
+
+```powershell
+python -m uvicorn app:app --reload
+```
+
+The backend should be accessible at:
+
+- **API:** http://127.0.0.1:8000
+- **Interactive API documentation:** http://127.0.0.1:8000/docs
+
+Keep this terminal open while using the frontend.
 
 ## Frontend Setup
 
-1. Install dependencies and start dev server:
+Open a second PowerShell terminal and navigate to the frontend directory:
 
-```bash
-cd frontend
+```powershell
+cd C:\Users\PUNAM\DebugAI\frontend
+```
+
+Install the frontend dependencies:
+
+```powershell
 npm install
+```
+
+Start the Vite development server:
+
+```powershell
 npm run dev
 ```
 
-2. Open the UI at the URL printed by Vite (usually `http://localhost:5173`). The UI provides an upload zone and a code editor.
+Open the URL displayed in the terminal, usually:
 
-## Screenshots & Demo
+http://localhost:5173
 
-### Upload Example
-![Upload example](docs/screenshots/Screenshot-2025-12-28-102705.png)
+The frontend provides an interface for uploading error screenshots and viewing analysis results.
 
-### Analysis Result
-![Analysis result](docs/screenshots/Screenshot-2025-12-28-102716.png)
+## How It Works
 
+1. The user uploads a screenshot containing a programming error.
+2. The frontend sends the image and optional source-code and programming-language fields to the FastAPI `/analyze` endpoint.
+3. The backend processes the uploaded image.
+4. Tesseract OCR extracts visible text from the screenshot.
+5. The prompt-building service prepares the extracted information for analysis.
+6. The fallback analyzer checks the available text against selected error patterns.
+7. The backend returns the analysis response to the frontend.
+8. The frontend displays the result to the user.
 
+OCR quality depends on screenshot clarity, text size, and image quality. Unrecognized errors may receive generic debugging guidance.
 
-## How It Works (Request Flow)
+## API Endpoint
 
-1. The frontend sends a multipart/form-data POST request to `http://127.0.0.1:8000/analyze` with a `file` (image) and optional `code`/`language` form fields. See `src/services/api.ts`.
-2. The backend `app.py` saves the uploaded file to `uploads/`.
-3. OCR is run with `pytesseract` (`services/ocr_service.py`) to extract text from the image.
-4. `services/prompt_builder.py` constructs a debugging prompt.
-5. `backend/models/llava_engine.py` calls the Ollama CLI with the prompt (text). The model output is returned as raw text in JSON `{ "analysis": "..." }`.
+### `POST /analyze`
 
-## Roadmap / Future Enhancements
+The `/analyze` endpoint accepts a multipart form request containing an image file and optional source-code and programming-language fields.
 
-- Multimodal input: pass the image directly to a model that supports images (update `run_llava` to send image bytes or use an API that accepts images)
-- Heuristics: add deterministic rules to detect common logical errors
-- Structured responses: parse model output into JSON (root cause, suggestion, confidence)
-- Persistence: GridFS for binary storage (optional)
+Example request:
 
-## Contributing
+```bash
+curl -X POST "http://127.0.0.1:8000/analyze" \
+  -F "file=@error_screenshot.png" \
+  -F "code=print(unknown_variable)" \
+  -F "language=python"
+```
 
-Contributions welcome. Suggested workflow:
+You can inspect the endpoint's required fields and test requests through the interactive API documentation:
 
-1. Fork the repo, create a feature branch.
-2. Open a PR with a clear description and testing steps.
+http://127.0.0.1:8000/docs
 
-## Author
+**Current limitation:** Although the request may contain source code and a programming language, the current analysis flow primarily uses text extracted from the uploaded screenshot. Full source-code-aware debugging requires further implementation.
 
-Karthik Jonnalagadda
-B.Tech Student | AI • Full-Stack • GenAI
+## Current Limitations
+
+- The fallback analyzer uses predefined rules instead of an active LLM.
+- Only selected error patterns are recognized.
+- OCR errors can affect the quality of the analysis.
+- Unfamiliar errors may produce generic suggestions.
+- Source-code-aware analysis is not yet fully integrated.
+- Automated code correction and test-case generation are future enhancements.
+- Database persistence should be treated as optional until its configuration and behavior have been verified.
+
+## Future Enhancements
+
+- Integrate an LLM for more detailed root-cause analysis.
+- Improve source-code analysis alongside screenshot text extraction.
+- Return structured results containing error type, root cause, severity, and recommended fixes.
+- Add automated fix recommendations.
+- Generate test cases for identified errors.
+- Expand error detection to support Python, Java, and additional programming languages.
+- Add persistent debugging history.
+- Improve automated testing and frontend-backend integration tests.
+
+## Testing the Application
+
+Before demonstrating DebugAI:
+
+1. Start the backend server.
+2. Open `http://127.0.0.1:8000/docs`.
+3. Upload a test screenshot containing a recognizable programming error.
+4. Verify that OCR extracts the expected text.
+5. Review the returned analysis.
+6. Start the frontend and repeat the test through the user interface.
 
 ## License
 
-This project is provided for educational and portfolio purposes. Add an open-source license (e.g., MIT) if you plan to publish the repository publicly.
+This project is intended for **educational and portfolio purposes**.
 
